@@ -454,8 +454,8 @@
 
 		i2c3 {
 			i2c3_xfer: i2c3-xfer {
-				rockchip,pins = <3 RK_PA2 2 &pcfg_pull_none>,
-						<3 RK_PA3 2 &pcfg_pull_none>;
+				rockchip,pins = <3 RK_PA2 1 &pcfg_pull_none>,
+						<3 RK_PA3 1 &pcfg_pull_none>;
 			};
 		};
 
