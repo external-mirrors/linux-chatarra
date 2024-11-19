@@ -1317,7 +1317,7 @@ static int gc0308_probe(struct i2c_client *client)
 		return dev_err_probe(dev, PTR_ERR(gc0308->pwdn_gpio),
 				     "failed to get powerdown gpio\n");
 
-	gc0308->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_LOW);
+	gc0308->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_LOW);
 	if (IS_ERR(gc0308->reset_gpio))
 		return dev_err_probe(dev, PTR_ERR(gc0308->reset_gpio),
 				     "failed to get reset gpio\n");
