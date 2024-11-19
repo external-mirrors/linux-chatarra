@@ -683,6 +683,10 @@
 						<3 RK_PC3 1 &pcfg_pull_default>,
 						<3 RK_PC4 1 &pcfg_pull_default>;
 			};
+
+			sd1_int_n: sd1-int-n {
+				rockchip,pins = <3 RK_PD2 1 &pcfg_pull_default>;
+			};
 		};
 
 		i2s0 {
@@ -848,7 +852,7 @@
 	dmas = <&dmac2 3>;
 	dma-names = "rx-tx";
 	pinctrl-names = "default";
-	pinctrl-0 = <&sd1_clk &sd1_cmd &sd1_cd &sd1_bus4>;
+	pinctrl-0 = <&sd1_clk &sd1_cmd &sd1_cd &sd1_bus4 &sd1_int_n>;
 };
 
 &emmc {
