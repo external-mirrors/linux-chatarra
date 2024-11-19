@@ -1409,6 +1409,8 @@ static void goodix_ts_remove(struct i2c_client *client)
 
 	if (ts->load_cfg_from_disk)
 		wait_for_completion(&ts->firmware_loading_complete);
+
+	devm_free_irq(&ts->client->dev, ts->client->irq, ts);
 }
 
 static int goodix_suspend(struct device *dev)
