@@ -30,13 +30,17 @@
 			reg = <0x0>;
 			operating-points =
 				/* kHz    uV */
+				// <1800000 1425000>,
+				// <1704000 1425000>,
+				<1608000 1425000>,
 				<1416000 1300000>,
 				<1200000 1175000>,
 				<1008000 1125000>,
-				<816000  1125000>,
-				<600000  1100000>,
-				<504000  1100000>,
-				<312000  1075000>;
+				<816000  1125000>;
+				// <600000  1100000>,
+				// <504000  1100000>,
+				// <312000  1075000>;
+			// operating-points-v2 = <&cpu0_opp_table>;
 			clock-latency = <40000>;
 			clocks = <&cru ARMCLK>;
 		};
@@ -45,7 +49,65 @@
 			compatible = "arm,cortex-a9";
 			next-level-cache = <&L2>;
 			reg = <0x1>;
+			// operating-points-v2 = <&cpu0_opp_table>;
 		};
+	};
+
+	// TODO: uses new rates for edited clk driver
+	// TODO: requires drivers/cpufreq/ti-cpufreq.c style driver type driver for 2 voltages
+	cpu0_opp_table: opp-table-0 {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp-252000000 {
+			opp-hz = /bits/ 64 <252000000>;
+			opp-microvolt = <1075000>; // , <1125000>;
+		};
+		opp-504000000 {
+			opp-hz = /bits/ 64 <504000000>;
+			opp-microvolt = <1100000>; // , <1125000>;
+		};
+		opp-816000000 {
+			opp-hz = /bits/ 64 <816000000>;
+			opp-microvolt = <1125000>; // , <1150000>;
+		};
+		opp-1008000000 {
+			opp-hz = /bits/ 64 <1008000000>;
+			opp-microvolt = <1125000>; // , <1150000>;
+		};
+		opp-1200000000 {
+			opp-hz = /bits/ 64 <1200000000>;
+			opp-microvolt = <1175000>; // , <1200000>;
+		};
+		opp-1272000000 {
+			opp-hz = /bits/ 64 <1272000000>;
+			opp-microvolt = <1225000>; // , <1200000>;
+		};
+		opp-1416000000 {
+			opp-hz = /bits/ 64 <1416000000>;
+			opp-microvolt = <1300000>; // , <1200000>;
+		};
+		opp-1512000000 {
+			opp-hz = /bits/ 64 <1512000000>;
+			opp-microvolt = <1350000>; // , <1250000>;
+		};
+		opp-1608000000 {
+			opp-hz = /bits/ 64 <1608000000>;
+			opp-microvolt = <1425000>; // , <1300000>;
+			turbo-mode;
+		};
+	};
+
+	gpu_opp_table: opp-table-gpu {
+		compatible = "operating-points-v2";
+
+		opp-266000000 {
+			opp-hz = /bits/ 64 <266000000>;
+		};
+
+		// opp-312000000 {
+		// 	opp-hz = /bits/ 64 <312000000>;
+		// };
 	};
 
 	display-subsystem {
@@ -803,6 +865,7 @@
 			  "pp3",
 			  "ppmmu3";
 	power-domains = <&power RK3066_PD_GPU>;
+	// operating-points-v2 = <&gpu_opp_table>;
 };
 
 &grf {
