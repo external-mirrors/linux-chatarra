@@ -33,11 +33,11 @@ static int subdev_notifier_complete(struct v4l2_async_notifier *notifier)
 	cif_dev = container_of(notifier, struct cif_device, notifier);
 	sd = cif_dev->remote.sd;
 
-	mutex_lock(&cif_dev->media_dev.graph_mutex);
-
 	ret = v4l2_device_register_subdev_nodes(&cif_dev->v4l2_dev);
 	if (ret < 0)
 		goto unlock;
+
+	mutex_lock(&cif_dev->media_dev.graph_mutex);
 
 	ret = media_create_pad_link(&sd->entity, 0,
 				    &cif_dev->stream.vdev.entity, 0,
@@ -89,12 +89,16 @@ static int cif_subdev_notifier(struct cif_device *cif_dev)
 
 	ep = fwnode_graph_get_endpoint_by_id(dev_fwnode(dev), 0, 0,
 					     FWNODE_GRAPH_ENDPOINT_NEXT);
-	if (!ep)
+	if (!ep) {
+		v4l2_err(&cif_dev->v4l2_dev, "fwnode_graph_get_endpoint_by_id\n");
 		return -ENODEV;
+	}
 
 	ret = v4l2_fwnode_endpoint_parse(ep, &vep);
-	if (ret)
+	if (ret) {
+		v4l2_err(&cif_dev->v4l2_dev, "v4l2_fwnode_endpoint_parse\n");
 		goto complete;
+	}
 
 	if (vep.bus_type != V4L2_MBUS_BT656 &&
 	    vep.bus_type != V4L2_MBUS_PARALLEL) {
@@ -106,6 +110,7 @@ static int cif_subdev_notifier(struct cif_device *cif_dev)
 					      struct v4l2_async_connection);
 	if (IS_ERR(asd)) {
 		ret = PTR_ERR(asd);
+		v4l2_err(&cif_dev->v4l2_dev, "v4l2_async_nf_add_fwnode_remote\n");
 		goto complete;
 	}
 
@@ -132,10 +137,26 @@ static const struct cif_match_data px30_cif_match_data = {
 	.clks_num = ARRAY_SIZE(px30_cif_clks),
 };
 
+static struct clk_bulk_data rk3066_cif_clks[] = {
+	{ .id = "aclk", },
+	{ .id = "hclk", },
+	{ .id = "pclk", },
+	{ .id = "sclk", },
+};
+
+static const struct cif_match_data rk3066_cif_match_data = {
+	.clks = rk3066_cif_clks,
+	.clks_num = ARRAY_SIZE(rk3066_cif_clks),
+};
+
 static const struct of_device_id cif_plat_of_match[] = {
 	{
 		.compatible = "rockchip,px30-vip",
 		.data = &px30_cif_match_data,
+	},
+	{
+		.compatible = "rockchip,rk3066-cif",
+		.data = &rk3066_cif_match_data,
 	},
 	{},
 };
@@ -181,14 +202,24 @@ static int cif_plat_probe(struct platform_device *pdev)
 	if (IS_ERR(cif_dev->base_addr))
 		return PTR_ERR(cif_dev->base_addr);
 
+	// XXX: WTF STATIC MODIFICATION
 	ret = devm_clk_bulk_get(dev, cif_dev->match_data->clks_num,
 				cif_dev->match_data->clks);
 	if (ret)
 		return ret;
 
+	// int x = clk_set_rate(cif_dev->match_data->clks[3].clk, 24*1000*1000);
+	// if (x)
+	// 	dev_err(&pdev->dev, "set_rate %d\n", x);
+
 	cif_dev->cif_rst = devm_reset_control_array_get(dev, false, false);
 	if (IS_ERR(cif_dev->cif_rst))
 		return PTR_ERR(cif_dev->cif_rst);
+
+	// reset_control_assert(cif_dev->cif_rst);
+	// udelay(5);
+	// reset_control_deassert(cif_dev->cif_rst);
+	// udelay(5);
 
 	cif_stream_init(cif_dev);
 	strscpy(cif_dev->media_dev.model, "cif",

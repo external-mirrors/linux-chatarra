@@ -55,7 +55,7 @@ static struct cif_output_fmt out_fmts[] = {
 		.fmt_val = CIF_FORMAT_YUV_OUTPUT_420 |
 			   CIF_FORMAT_UV_STORAGE_ORDER_VUVU,
 		.cplanes = 2,
-	}, {
+	}, /* {
 		.fourcc = V4L2_PIX_FMT_RGB24,
 		.cplanes = 1,
 	}, {
@@ -106,7 +106,7 @@ static struct cif_output_fmt out_fmts[] = {
 	}, {
 		.fourcc = V4L2_PIX_FMT_Y16,
 		.cplanes = 1,
-	}
+	} */
 };
 
 static const struct cif_input_fmt in_fmts[] = {
@@ -266,23 +266,28 @@ cif_input_fmt *get_input_fmt(struct v4l2_subdev *sd)
 
 	for (i = 0; i < ARRAY_SIZE(in_fmts); i++)
 		if (fmt.format.code == in_fmts[i].mbus_code &&
-		    fmt.format.field == in_fmts[i].field)
+		    fmt.format.field == in_fmts[i].field) {
+			v4l2_err(sd->v4l2_dev, "in fmt %d\n", i);
 			return &in_fmts[i];
+		}
 
-	v4l2_err(sd->v4l2_dev, "remote's mbus code not supported\n");
+	v4l2_err(sd->v4l2_dev, "remote's mbus code not supported: %x %x\n", fmt.format.code, fmt.format.field);
 	return NULL;
 }
 
 static struct
 cif_output_fmt *find_output_fmt(struct cif_stream *stream, u32 pixelfmt)
 {
+	struct cif_device *cif_dev = stream->cifdev;
 	struct cif_output_fmt *fmt;
 	u32 i;
 
 	for (i = 0; i < ARRAY_SIZE(out_fmts); i++) {
 		fmt = &out_fmts[i];
-		if (fmt->fourcc == pixelfmt)
+		if (fmt->fourcc == pixelfmt) {
+			dev_err(cif_dev->dev, "out fmt %d\n", i);
 			return fmt;
+		}
 	}
 
 	return NULL;
@@ -490,25 +495,36 @@ static int cif_stream_start(struct cif_stream *stream)
 	stream->frame_idx = 0;
 	stream->frame_phase = 0;
 
+	struct device *dev = stream->cifdev->dev;
 	fmt_type = stream->cif_fmt_in->fmt_type;
-	input_mode = (remote_info->std == V4L2_STD_NTSC) ?
-		      CIF_FORMAT_INPUT_MODE_NTSC :
-		      CIF_FORMAT_INPUT_MODE_PAL;
+	// input_mode = (remote_info->std == V4L2_STD_NTSC) ?
+	// 	      CIF_FORMAT_INPUT_MODE_NTSC :
+	// 	      CIF_FORMAT_INPUT_MODE_PAL;
+	dev_err(dev, "remote std %llx\n",remote_info->std);
+	// input_mode = (fmt_type == CIF_FMT_TYPE_YUV) ? CIF_FORMAT_INPUT_MODE_YUV : CIF_FORMAT_INPUT_MODE_RAW;
+	input_mode = CIF_FORMAT_INPUT_MODE_YUV;
 
 	val = input_mode | stream->cif_fmt_out->fmt_val |
 	      stream->cif_fmt_in->dvp_fmt_val | xfer_mode;
+	dev_err(dev, "for was %x\n",cif_read(cif_dev, CIF_FOR));
 	cif_write(cif_dev, CIF_FOR, val);
+	dev_err(dev, "for willbe %x\n",val);
+	msleep(1);
+	dev_err(dev, "for is %x\n",cif_read(cif_dev, CIF_FOR));
 
 	val = stream->pix.width;
-	if (stream->cif_fmt_in->fmt_type == CIF_FMT_TYPE_RAW)
+	if (fmt_type == CIF_FMT_TYPE_RAW)
 		val = stream->pix.width * 2;
 
 	cif_write(cif_dev, CIF_VIR_LINE_WIDTH, val);
 	cif_write(cif_dev, CIF_SET_SIZE,
 		  stream->pix.width | (stream->pix.height << 16));
 
+	dev_err(dev, "f st was %x\n",cif_read(cif_dev, CIF_FRAME_STATUS));
 	cif_write(cif_dev, CIF_FRAME_STATUS, CIF_FRAME_STAT_CLS);
+	dev_err(dev, "i st was %x\n",cif_read(cif_dev, CIF_INTSTAT));
 	cif_write(cif_dev, CIF_INTSTAT, CIF_INTSTAT_CLS);
+	dev_err(dev, "scl was %x\n",cif_read(cif_dev, CIF_SCL_CTRL));
 	cif_write(cif_dev, CIF_SCL_CTRL, (fmt_type == CIF_FMT_TYPE_YUV) ?
 					 CIF_SCL_CTRL_ENABLE_YUV_16BIT_BYPASS :
 					 CIF_SCL_CTRL_ENABLE_RAW_16BIT_BYPASS);
@@ -517,10 +533,12 @@ static int cif_stream_start(struct cif_stream *stream)
 	if (ret)
 		return ret;
 
+	dev_err(dev, "inten was %x\n",cif_read(cif_dev, CIF_INTEN));
 	cif_write(cif_dev, CIF_INTEN, CIF_INTEN_FRAME_END_EN |
-				      CIF_INTEN_LINE_ERR_EN |
+				      CIF_INTEN_LINE_ERR_EN | // CIF_INTEN_LBO_ERR_EN | CIF_INTEN_SCM_ERR_EN | CIF_INTEN_PIX_ERR_EN |
 				      CIF_INTEN_PST_INF_FRAME_END_EN);
 
+	dev_err(dev, "ctrl was %x\n",cif_read(cif_dev, CIF_CTRL));
 	cif_write(cif_dev, CIF_CTRL, CIF_CTRL_AXI_BURST_16 |
 				     CIF_CTRL_MODE_PINGPONG |
 				     CIF_CTRL_ENABLE_CAPTURE);
@@ -562,6 +580,7 @@ static int cif_start_streaming(struct vb2_queue *queue, unsigned int count)
 	if (ret < 0)
 		goto stop_stream;
 
+	v4l2_err(v4l2_dev, "cif streamingggg\n");
 	return 0;
 
 stop_stream:
@@ -702,11 +721,13 @@ static int cif_enum_input(struct file *file, void *priv,
 	struct v4l2_subdev *sd = stream->cifdev->remote.sd;
 	int ret;
 
+	v4l2_err(sd->v4l2_dev, "input ind %d\n", input->index);
 	if (input->index > 0)
 		return -EINVAL;
 
 	ret = v4l2_subdev_call(sd, video, g_input_status, &input->status);
-	if (ret && ret != -EOPNOTSUPP)
+	v4l2_err(sd->v4l2_dev, "v4l2_subdev_call =%d\n", ret);
+	if (ret && ret != -EOPNOTSUPP && ret != -ENOIOCTLCMD)
 		return ret;
 
 	strscpy(input->name, "Camera", sizeof(input->name));
@@ -1070,6 +1091,29 @@ irqreturn_t cif_irq_pingpong(int irq, void *ctx)
 						CIF_INTSTAT_PIX_ERR);
 		cif_reset_stream(cif_dev);
 	}
+
+	/*
+	if (intstat & (CIF_INTSTAT_BUS_ERR)) {
+		v4l2_err(&cif_dev->v4l2_dev,
+			 "BUS_ERR detected, stream will be reset");
+		cif_write(cif_dev, CIF_INTSTAT, CIF_INTSTAT_BUS_ERR);
+		cif_reset_stream(cif_dev);
+	}
+
+	if (intstat & (CIF_INTSTAT_SCL_ERR)) {
+		v4l2_err(&cif_dev->v4l2_dev,
+			 "SCL_ERR detected, stream will be reset");
+		cif_write(cif_dev, CIF_INTSTAT, CIF_INTSTAT_SCL_ERR);
+		cif_reset_stream(cif_dev);
+	}
+
+	if (intstat & (CIF_INTSTAT_DFIFO_OF)) {
+		v4l2_err(&cif_dev->v4l2_dev,
+			 "DFIFO_OF detected, stream will be reset");
+		cif_write(cif_dev, CIF_INTSTAT, CIF_INTSTAT_DFIFO_OF);
+		cif_reset_stream(cif_dev);
+	}
+	*/
 
 	if (intstat & CIF_INTSTAT_FRAME_END) {
 		struct vb2_v4l2_buffer *vb_done = NULL;
