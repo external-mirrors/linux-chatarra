@@ -82,6 +82,54 @@
 		};
 	};
 
+	cif0: cif@10108000 {
+		compatible = "rockchip,rk3066-cif";
+		reg = <0x10108000 0x200>;
+		interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cru ACLK_CIF0>, <&cru HCLK_CIF0>, <&cru PCLK_CIF0>, <&cru SCLK_CIF0>;
+		clock-names = "aclk", "hclk", "pclk", "sclk";
+		resets = <&cru SRST_CIF0>;
+		reset-names = "cif";
+		// reset-names = "axi", "ahb", "pclkin";
+		power-domains = <&power RK3066_PD_VIO>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cif0_clkout>;
+		status = "disabled";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			cif0_in: port@0 {
+				reg = <0>;
+			};
+		};
+	};
+
+	cif1: cif@1010a000 {
+		compatible = "rockchip,rk3066-cif";
+		reg = <0x1010a000 0x200>;
+		interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cru ACLK_CIF1>, <&cru HCLK_CIF1>, <&cru PCLK_CIF1>, <&cru SCLK_CIF1>;
+		clock-names = "aclk", "hclk", "pclk", "sclk";
+		resets = <&cru SRST_CIF1>;
+		reset-names = "cif";
+		// reset-names = "axi", "ahb", "pclkin";
+		power-domains = <&power RK3066_PD_VIO>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cif1_bus &cif1_vsync &cif1_href &cif1_clkin &cif1_clkout>;
+		status = "disabled";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			cif1_in: port@0 {
+				reg = <0>;
+			};
+		};
+	};
+
 	vop0: vop@1010c000 {
 		compatible = "rockchip,rk3066-vop";
 		reg = <0x1010c000 0x19c>;
@@ -672,6 +720,41 @@
 						<0 RK_PD5 1 &pcfg_pull_default>;
 			};
 		};
+
+		cif0 {
+			cif0_clkout: cif0-clkout {
+				rockchip,pins = <1 RK_PB3 1 &pcfg_pull_none>;
+			};
+		};
+
+		cif1 {
+			cif1_bus: cif1-bus {
+				rockchip,pins = <1 RK_PC0 1 &pcfg_pull_default>,
+						<1 RK_PC1 1 &pcfg_pull_default>,
+						<1 RK_PC2 1 &pcfg_pull_default>,
+						<1 RK_PC3 1 &pcfg_pull_default>,
+						<1 RK_PC4 1 &pcfg_pull_default>,
+						<1 RK_PC5 1 &pcfg_pull_default>,
+						<1 RK_PC6 1 &pcfg_pull_default>,
+						<1 RK_PC7 1 &pcfg_pull_default>;
+			};
+
+			cif1_vsync: cif1-vsync {
+				rockchip,pins = <1 RK_PD0 1 &pcfg_pull_default>;
+			};
+
+			cif1_href: cif1-href {
+				rockchip,pins = <1 RK_PD1 1 &pcfg_pull_default>;
+			};
+
+			cif1_clkin: cif1-clkin {
+				rockchip,pins = <1 RK_PD2 1 &pcfg_pull_default>;
+			};
+
+			cif1_clkout: cif1-clkout {
+				rockchip,pins = <1 RK_PD7 1 &pcfg_pull_none>;
+			};
+		};
 	};
 };
 
@@ -791,9 +874,11 @@
 				 <&cru SCLK_CIF1>,
 				 <&cru ACLK_CIF1>,
 				 <&cru HCLK_CIF1>,
+				 <&cru PCLK_CIF1>,
 				 <&cru SCLK_CIF0>,
 				 <&cru ACLK_CIF0>,
 				 <&cru HCLK_CIF0>,
+				 <&cru PCLK_CIF0>,
 				 <&cru HCLK_HDMI>,
 				 <&cru ACLK_IPP>,
 				 <&cru HCLK_IPP>,
