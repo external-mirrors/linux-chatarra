@@ -468,6 +468,24 @@
 			 */
 		};
 
+		nfc {
+			flash_dqs: flash-dqs {
+				rockchip,pins = <3 RK_PD7 1 &pcfg_pull_default>;
+			};
+
+			flash_cs1: flash-cs1 {
+				rockchip,pins = <4 RK_PB0 1 &pcfg_pull_default>;
+			};
+
+			flash_cs2: flash-cs2 {
+				rockchip,pins = <4 RK_PB1 1 &pcfg_pull_default>;
+			};
+
+			flash_cs3: flash-cs3 {
+				rockchip,pins = <4 RK_PB2 1 &pcfg_pull_default>;
+			};
+		};
+
 		hdmi {
 			hdmi_hpd: hdmi-hpd {
 				rockchip,pins = <0 RK_PA0 1 &pcfg_pull_default>;
@@ -858,6 +876,13 @@
 &emmc {
 	dmas = <&dmac2 4>;
 	dma-names = "rx-tx";
+	pinctrl-names = "default";
+	pinctrl-0 = <&emmc_clk &emmc_cmd &emmc_rst>;
+};
+
+&nfc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&flash_dqs &flash_cs1 &flash_cs2 &flash_cs3>;
 };
 
 &pmu {
